@@ -32,7 +32,7 @@ public class MainActivity extends AppCompatActivity {
         CategorizedListAdapter adapter = new CategorizedListAdapter(model, this);
         categorizedList.setAdapter(adapter);
 
-        adapter.setOnItemClickListener(new CategorizedListAdapter.OnClickListener() {
+        adapter.setOnItemClickListener(new CategorizedListAdapter.OnItemClickListener() {
             @Override
             public void onClick(Object item) {
                 if (item instanceof DemoItem) {

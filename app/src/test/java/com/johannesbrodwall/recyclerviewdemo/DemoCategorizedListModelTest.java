@@ -17,6 +17,7 @@ public class DemoCategorizedListModelTest {
     private final DemoItem item1_1 = new DemoItem("Item 1.1", category1.getId());
     private final DemoItem item2_1 = new DemoItem("Item 2 A", category2.getId());
     private final DemoItem item2_2 = new DemoItem("Item 2 B", category2.getId());
+    private final DemoItem item2_3 = new DemoItem("Item 2 C (optional)", category2.getId());
 
     private DemoCategorizedListModel.ItemChangeListener mockChangeListener =
             Mockito.mock(DemoCategorizedListModel.ItemChangeListener.class);
@@ -27,7 +28,7 @@ public class DemoCategorizedListModelTest {
                 Arrays.asList(category2, category1),
                 Arrays.asList(item2_2, item1_1, item2_1));
 
-        assertThat(model.getRows()).containsExactly(category1, item1_1, category2, item2_1, item2_2);
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1, category2, item2_1, item2_2);
         assertThat(model.getRowCount()).isEqualTo(5);
         assertThat(model.getRow(2)).isEqualTo(category2);
     }
@@ -39,10 +40,10 @@ public class DemoCategorizedListModelTest {
                 Arrays.asList(item1_1, item2_1, item2_2));
 
         model.toggleCategories();
-        assertThat(model.getRows()).containsExactly(item1_1, item2_1, item2_2);
+        assertThat(model.getDisplayedRows()).containsExactly(item1_1, item2_1, item2_2);
 
         model.toggleCategories();
-        assertThat(model.getRows()).containsExactly(category1, item1_1, category2, item2_1, item2_2);
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1, category2, item2_1, item2_2);
     }
 
     @Test
@@ -63,11 +64,14 @@ public class DemoCategorizedListModelTest {
                 Arrays.asList(category1, category2),
                 Arrays.asList(item1_1, item2_1, item2_2));
 
-        model.toggleCollapsed(category2);
-        assertThat(model.getRows()).containsExactly(category1, item1_1, category2);
+        model.collapseParent(category2);
+        model.collapseParent(category2);
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1, category2);
 
         model.toggleCollapsed(category2);
-        assertThat(model.getRows()).containsExactly(category1, item1_1, category2, item2_1, item2_2);
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1, category2, item2_1, item2_2);
+        model.expandParent(category2);
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1, category2, item2_1, item2_2);
     }
 
     @Test
@@ -93,11 +97,29 @@ public class DemoCategorizedListModelTest {
                 Arrays.asList(category1, category2),
                 Arrays.asList(item1_1, item2_1, item2_2));
 
-        model.remove(model.indexOf(item1_1));
-        assertThat(model.getRows()).containsExactly(category1, category2, item2_1, item2_2);
+        model.remove(model.indexOf(item2_1));
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1, category2, item2_2);
+    }
+
+    @Test
+    public void shouldRemoveCategory() {
+        DemoCategorizedListModel model = new DemoCategorizedListModel(
+                Arrays.asList(category1, category2),
+                Arrays.asList(item1_1, item2_1, item2_2));
 
         model.remove(model.indexOf(category2));
-        assertThat(model.getRows()).containsExactly(category1);
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1);
+    }
+
+    @Test
+    public void shouldRemoveCollapsedCategory() {
+        DemoCategorizedListModel model = new DemoCategorizedListModel(
+                Arrays.asList(category1, category2),
+                Arrays.asList(item1_1, item2_1, item2_2));
+
+        model.collapseParent(category2);
+        model.remove(model.indexOf(category2));
+        assertThat(model.getDisplayedRows()).containsExactly(category1, item1_1);
     }
 
     @Test
@@ -107,9 +129,8 @@ public class DemoCategorizedListModelTest {
                 Arrays.asList(item1_1, item2_1, item2_2));
         model.setItemChangeListener(mockChangeListener);
 
-        model.remove(model.indexOf(item1_1));
-        verify(mockChangeListener).notifyItemRemoved(1);
-        reset(mockChangeListener);
+        model.remove(model.indexOf(item2_1));
+        verify(mockChangeListener).notifyItemRemoved(3);
     }
 
     @Test
@@ -121,6 +142,16 @@ public class DemoCategorizedListModelTest {
 
         model.remove(model.indexOf(category2));
         verify(mockChangeListener).notifyItemRangeRemoved(1, 3);
+    }
+
+    @Test
+    public void shouldHideCategoriesWithNoItems() {
+        DemoCategorizedListModel model = new DemoCategorizedListModel(
+                Arrays.asList(category1, category2),
+                Arrays.asList(item1_1, item2_1, item2_2));
+
+        model.remove(model.indexOf(item1_1));
+        assertThat(model.getDisplayedRows()).containsExactly(category2, item2_1, item2_2);
     }
 
 }

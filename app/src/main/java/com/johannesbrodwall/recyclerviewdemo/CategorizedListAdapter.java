@@ -17,13 +17,13 @@ import android.widget.TextView;
 
 public class CategorizedListAdapter extends RecyclerView.Adapter<CategorizedListAdapter.DemoViewHolder> implements DemoCategorizedListModel.ItemChangeListener {
 
-    public interface OnClickListener {
+    public interface OnItemClickListener {
         void onClick(Object item);
     }
 
-    private OnClickListener onItemClickListener;
+    private OnItemClickListener onItemClickListener;
 
-    public void setOnItemClickListener(OnClickListener onItemClickListener) {
+    public void setOnItemClickListener(OnItemClickListener onItemClickListener) {
         this.onItemClickListener = onItemClickListener;
     }
 
@@ -111,14 +111,16 @@ public class CategorizedListAdapter extends RecyclerView.Adapter<CategorizedList
                 }
                 super.onChildDraw(c, recyclerView, viewHolder, dX, dY, actionState, isCurrentlyActive);
             }
+
+
         };
         new ItemTouchHelper(listItemTouchListener).attachToRecyclerView(recyclerView);
     }
 
     @Override
     public int getItemViewType(int position) {
-        if (getItem(position) instanceof DemoCategory) return ROW_CATEGORY;
-        if (getItem(position) instanceof DemoItem) return ROW_ITEM;
+        if (model.getRow(position) instanceof DemoCategory) return ROW_CATEGORY;
+        if (model.getRow(position) instanceof DemoItem) return ROW_ITEM;
         throw new IllegalArgumentException("Unknown row type");
     }
 
@@ -141,10 +143,6 @@ public class CategorizedListAdapter extends RecyclerView.Adapter<CategorizedList
     @Override
     public int getItemCount() {
         return model.getRowCount();
-    }
-
-    private Object getItem(int position) {
-        return model.getRow(position);
     }
 
     public void remove(int position) {

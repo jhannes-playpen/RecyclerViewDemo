@@ -9,14 +9,16 @@ import java.util.UUID;
 
 public class DemoCategorizedListModel {
 
+    private ItemChangeListener itemChangeListener = new NullItemChangeListener();
+
     private final List<DemoItem> items = new ArrayList<>();
     private final List<DemoCategory> categories = new ArrayList<>();
     private final Map<UUID, List<DemoItem>> itemsPerCategory = new HashMap<>();
+
+    private boolean isGroupedByCategory = true;
     private final Map<UUID, Boolean> isExpanded = new HashMap<>();
 
-    private List<Object> rows = new ArrayList<>();
-    private boolean isCategoriesDisplayed = true;
-    private ItemChangeListener itemChangeListener = new NullItemChangeListener();
+    private List<Object> displayedRows = new ArrayList<>();
 
     public DemoCategorizedListModel(List<DemoCategory> categories, List<DemoItem> items) {
         this.categories.addAll(categories);
@@ -30,36 +32,36 @@ public class DemoCategorizedListModel {
             itemsPerCategory.get(item.getCategoryId()).add(item);
         }
 
-        expandAll();
+        displayWithCategories();
     }
 
-    private void expandAll() {
-        rows.clear();
+    private void displayWithCategories() {
+        displayedRows.clear();
         Collections.sort(categories);
 
         for (DemoCategory category : categories) {
-            rows.add(category);
+            displayedRows.add(category);
             if (isExpanded.get(category.getId())) {
                 List<DemoItem> items = new ArrayList<>(itemsPerCategory.get(category.getId()));
                 Collections.sort(items);
-                rows.addAll(items);
+                displayedRows.addAll(items);
             }
         }
     }
 
     private void displayOnlyChildren() {
-        rows.clear();
+        displayedRows.clear();
 
         Collections.sort(items);
-        rows.addAll(items);
+        displayedRows.addAll(items);
     }
 
     public int getRowCount() {
-        return rows.size();
+        return displayedRows.size();
     }
 
     public Object getRow(int position) {
-        return rows.get(position);
+        return displayedRows.get(position);
     }
 
     public boolean isExpanded(DemoCategory category) {
@@ -67,12 +69,15 @@ public class DemoCategorizedListModel {
     }
 
     public void collapseParent(DemoCategory category) {
+        if (!isExpanded.get(category.getId())) {
+            return;
+        }
         isExpanded.put(category.getId(), false);
 
-        int position = rows.indexOf(category);
+        int position = displayedRows.indexOf(category);
         int childPosition = position + 1;
-        while (childPosition < rows.size() && getRow(childPosition) instanceof DemoItem) {
-            rows.remove(childPosition);
+        while (childPosition < displayedRows.size() && getRow(childPosition) instanceof DemoItem) {
+            displayedRows.remove(childPosition);
         }
 
         itemChangeListener.notifyItemChanged(position);
@@ -80,20 +85,23 @@ public class DemoCategorizedListModel {
     }
 
     public void expandParent(DemoCategory category) {
+        if (isExpanded.get(category.getId())) {
+            return;
+        }
         isExpanded.put(category.getId(), true);
 
-        int position = rows.indexOf(category);
-        rows.addAll(position + 1, this.itemsPerCategory.get(category.getId()));
+        int position = displayedRows.indexOf(category);
+        List<DemoItem> children = new ArrayList<>(this.itemsPerCategory.get(category.getId()));
+        Collections.sort(children);
+        displayedRows.addAll(position + 1, children);
         itemChangeListener.notifyItemChanged(position);
-
-        int count = this.itemsPerCategory.get(category.getId()).size();
-        itemChangeListener.notifyItemRangeInserted(position + 1, count);
+        itemChangeListener.notifyItemRangeInserted(position + 1, children.size());
     }
 
     public void toggleCategories() {
-        isCategoriesDisplayed = !isCategoriesDisplayed;
-        if (isCategoriesDisplayed) {
-            expandAll();
+        isGroupedByCategory = !isGroupedByCategory;
+        if (isGroupedByCategory) {
+            displayWithCategories();
         } else {
             displayOnlyChildren();
         }
@@ -101,25 +109,35 @@ public class DemoCategorizedListModel {
     }
 
     public void remove(int position) {
-        Object o = rows.remove(position);
+        Object o = displayedRows.remove(position);
         if (o instanceof DemoCategory) {
             categories.remove(o);
-            List<DemoItem> itemsToRemove = itemsPerCategory.remove(((DemoCategory) o).getId());
+            DemoCategory category = (DemoCategory) o;
+            List<DemoItem> itemsToRemove = itemsPerCategory.remove(category.getId());
 
-            for (int i=0; i<itemsToRemove.size(); i++) {
-                rows.remove(position);
+            if (isExpanded.get(category.getId())) {
+                for (int i=0; i<itemsToRemove.size(); i++) {
+                    displayedRows.remove(position);
+                }
+                itemChangeListener.notifyItemRangeRemoved(position, 1 + itemsToRemove.size());
+            } else {
+                itemChangeListener.notifyItemRemoved(position);
             }
-            itemChangeListener.notifyItemRangeRemoved(position, 1+itemsToRemove.size());
-        } else {
+        } else if (o instanceof DemoItem) {
             DemoItem item = (DemoItem)o;
             itemsPerCategory.get(item.getCategoryId()).remove(item);
             items.remove(item);
             itemChangeListener.notifyItemRemoved(position);
+
+            if (itemsPerCategory.get(item.getCategoryId()).isEmpty()) {
+                displayedRows.remove(position-1);
+                itemChangeListener.notifyItemRemoved(position-1);
+            }
         }
     }
 
     public int indexOf(Object o) {
-        return rows.indexOf(o);
+        return displayedRows.indexOf(o);
     }
 
     public void toggleCollapsed(DemoCategory category) {
@@ -134,8 +152,8 @@ public class DemoCategorizedListModel {
         this.itemChangeListener = itemChangeListener;
     }
 
-    public List<Object> getRows() {
-        return rows;
+    public List<Object> getDisplayedRows() {
+        return displayedRows;
     }
 
     public interface ItemChangeListener {
