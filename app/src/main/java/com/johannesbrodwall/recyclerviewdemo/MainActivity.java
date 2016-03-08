@@ -8,6 +8,11 @@ import android.support.v7.widget.RecyclerView;
 import android.view.Menu;
 import android.view.MenuItem;
 
+import java.util.ArrayList;
+import java.util.Arrays;
+import java.util.List;
+import java.util.Random;
+
 public class MainActivity extends AppCompatActivity {
 
     private static final int SHOW_ITEM = 1423;
@@ -65,6 +70,23 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private DemoCategorizedListModel getModel() {
-        return new DemoCategorizedListModel();
+        return new DemoCategorizedListModel(CATEGORIES, getItems());
     }
+
+    private static final List<DemoCategory> CATEGORIES = Arrays.asList(new DemoCategory("foo"), new DemoCategory("bar"), new DemoCategory("baz"));
+
+    private static List<DemoItem> getItems() {
+        ArrayList<DemoItem> result = new ArrayList<>();
+        for (int i=0; i<20; i++) {
+            result.add(new DemoItem("item " + i, pickRandom(CATEGORIES).getId()));
+        }
+        return result;
+    }
+
+    private static <T> T pickRandom(List<T> alternatives) {
+        return alternatives.get(new Random().nextInt(alternatives.size()));
+    }
+
+
+
 }

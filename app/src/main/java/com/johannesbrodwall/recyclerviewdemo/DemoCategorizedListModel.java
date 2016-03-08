@@ -1,19 +1,16 @@
 package com.johannesbrodwall.recyclerviewdemo;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
-import java.util.Random;
 import java.util.UUID;
 
 public class DemoCategorizedListModel {
 
-    private static final List<DemoCategory> CATEGORIES = Arrays.asList(new DemoCategory("foo"), new DemoCategory("bar"), new DemoCategory("baz"));
-    private final List<DemoItem> items;
-    private final List<DemoCategory> categories;
+    private final List<DemoItem> items = new ArrayList<>();
+    private final List<DemoCategory> categories = new ArrayList<>();
     private final Map<UUID, List<DemoItem>> itemsPerCategory = new HashMap<>();
     private final Map<UUID, Boolean> isExpanded = new HashMap<>();
 
@@ -21,22 +18,16 @@ public class DemoCategorizedListModel {
     private boolean isCategoriesDisplayed = true;
     private ItemChangeListener itemChangeListener = new NullItemChangeListener();
 
-    public DemoCategorizedListModel() {
-        this(getCategories(), getItems());
-    }
-
     public DemoCategorizedListModel(List<DemoCategory> categories, List<DemoItem> items) {
-        this.categories = categories;
-        this.items = items;
+        this.categories.addAll(categories);
+        this.items.addAll(items);
 
-        for (DemoItem item : items) {
-            if (!itemsPerCategory.containsKey(item.getCategoryId())) {
-                itemsPerCategory.put(item.getCategoryId(), new ArrayList<DemoItem>());
-            }
-            itemsPerCategory.get(item.getCategoryId()).add(item);
-        }
         for (DemoCategory category : categories) {
             isExpanded.put(category.getId(), true);
+            itemsPerCategory.put(category.getId(), new ArrayList<DemoItem>());
+        }
+        for (DemoItem item : items) {
+            itemsPerCategory.get(item.getCategoryId()).add(item);
         }
 
         expandAll();
@@ -49,7 +40,9 @@ public class DemoCategorizedListModel {
         for (DemoCategory category : categories) {
             rows.add(category);
             if (isExpanded.get(category.getId())) {
-                rows.addAll(itemsPerCategory.get(category.getId()));
+                List<DemoItem> items = new ArrayList<>(itemsPerCategory.get(category.getId()));
+                Collections.sort(items);
+                rows.addAll(items);
             }
         }
     }
@@ -60,23 +53,6 @@ public class DemoCategorizedListModel {
         Collections.sort(items);
         rows.addAll(items);
     }
-
-    private static List<DemoItem> getItems() {
-        ArrayList<DemoItem> result = new ArrayList<>();
-        for (int i=0; i<20; i++) {
-            result.add(new DemoItem("item " + i, pickRandom(CATEGORIES).getId()));
-        }
-        return result;
-    }
-
-    private static <T> T pickRandom(List<T> alternatives) {
-        return alternatives.get(new Random().nextInt(alternatives.size()));
-    }
-
-    private static List<DemoCategory> getCategories() {
-        return CATEGORIES;
-    }
-
 
     public int getRowCount() {
         return rows.size();
@@ -90,22 +66,28 @@ public class DemoCategorizedListModel {
         return isExpanded.get(category.getId());
     }
 
-    public int collapseParent(DemoCategory category) {
+    public void collapseParent(DemoCategory category) {
         isExpanded.put(category.getId(), false);
 
-        int position = rows.indexOf(category) + 1;
-        while (position < rows.size() && getRow(position) instanceof DemoItem) {
-            rows.remove(position);
+        int position = rows.indexOf(category);
+        int childPosition = position + 1;
+        while (childPosition < rows.size() && getRow(childPosition) instanceof DemoItem) {
+            rows.remove(childPosition);
         }
-        return this.itemsPerCategory.get(category.getId()).size();
+
+        itemChangeListener.notifyItemChanged(position);
+        itemChangeListener.notifyItemRangeRemoved(childPosition, this.itemsPerCategory.get(category.getId()).size());
     }
 
-    public int expandParent(DemoCategory category) {
+    public void expandParent(DemoCategory category) {
         isExpanded.put(category.getId(), true);
 
-        int position = rows.indexOf(category) + 1;
-        rows.addAll(position, this.itemsPerCategory.get(category.getId()));
-        return this.itemsPerCategory.get(category.getId()).size();
+        int position = rows.indexOf(category);
+        rows.addAll(position + 1, this.itemsPerCategory.get(category.getId()));
+        itemChangeListener.notifyItemChanged(position);
+
+        int count = this.itemsPerCategory.get(category.getId()).size();
+        itemChangeListener.notifyItemRangeInserted(position + 1, count);
     }
 
     public void toggleCategories() {
@@ -122,12 +104,18 @@ public class DemoCategorizedListModel {
         Object o = rows.remove(position);
         if (o instanceof DemoCategory) {
             categories.remove(o);
+            List<DemoItem> itemsToRemove = itemsPerCategory.remove(((DemoCategory) o).getId());
+
+            for (int i=0; i<itemsToRemove.size(); i++) {
+                rows.remove(position);
+            }
+            itemChangeListener.notifyItemRangeRemoved(position, 1+itemsToRemove.size());
         } else {
             DemoItem item = (DemoItem)o;
             itemsPerCategory.get(item.getCategoryId()).remove(item);
             items.remove(item);
+            itemChangeListener.notifyItemRemoved(position);
         }
-        itemChangeListener.notifyItemRemoved(position);
     }
 
     public int indexOf(Object o) {
@@ -135,17 +123,19 @@ public class DemoCategorizedListModel {
     }
 
     public void toggleCollapsed(DemoCategory category) {
-        int position = indexOf(category);
         if (isExpanded(category)) {
-            itemChangeListener.notifyItemRangeRemoved(position + 1, collapseParent(category));
+            collapseParent(category);
         } else {
-            itemChangeListener.notifyItemRangeInserted(position + 1, expandParent(category));
+            expandParent(category);
         }
-        itemChangeListener.notifyItemChanged(position);
     }
 
     public void setItemChangeListener(ItemChangeListener itemChangeListener) {
         this.itemChangeListener = itemChangeListener;
+    }
+
+    public List<Object> getRows() {
+        return rows;
     }
 
     public interface ItemChangeListener {
