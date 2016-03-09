@@ -3,7 +3,7 @@ package com.johannesbrodwall.recyclerviewdemo;
 import java.util.UUID;
 
 public class DemoItem implements Comparable<DemoItem> {
-    private final String name;
+    private String name;
     private final UUID categoryId;
 
     public DemoItem(String name, DemoCategory categoryId) {
@@ -27,5 +27,9 @@ public class DemoItem implements Comparable<DemoItem> {
     @Override
     public int compareTo(DemoItem another) {
         return name.compareTo(another.name);
+    }
+
+    public void setName(String name) {
+        this.name = name;
     }
 }

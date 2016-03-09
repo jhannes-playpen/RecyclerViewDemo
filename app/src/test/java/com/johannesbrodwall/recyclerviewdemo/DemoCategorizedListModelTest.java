@@ -9,6 +9,7 @@ import java.util.Collections;
 import static org.assertj.core.api.Java6Assertions.assertThat;
 import static org.mockito.Mockito.reset;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.verifyNoMoreInteractions;
 
 public class DemoCategorizedListModelTest {
 
@@ -187,4 +188,44 @@ public class DemoCategorizedListModelTest {
         assertThat(model.getDisplayedRows()).containsExactly(category2);
     }
 
+    @Test
+    public void shouldRemoveItemsNoLongerMatchingFilter() {
+        DemoCategorizedListModel model = new DemoCategorizedListModel(
+                Arrays.asList(category1, category2),
+                Arrays.asList(item1_1, item2_1, item2_2));
+        model.toggleCategories();
+
+        model.setFilter("Item 2");
+
+        model.setItemChangeListener(mockChangeListener);
+        item2_2.setName("no match");
+        model.update(item2_2);
+        assertThat(model.getDisplayedRows()).containsExactly(item2_1);
+        verify(mockChangeListener).notifyItemRemoved(1);
+
+        item2_2.setName("still no match");
+        model.update(item2_2);
+        verifyNoMoreInteractions(mockChangeListener);
+    }
+
+    @Test
+    public void shouldAddItemsStartingToMatchFilter() {
+        DemoCategorizedListModel model = new DemoCategorizedListModel(
+                Arrays.asList(category1, category2),
+                Arrays.asList(item1_1, item2_1, item2_2));
+        model.toggleCategories();
+
+        model.setFilter("Nothing like this");
+
+        model.setItemChangeListener(mockChangeListener);
+        item2_2.setName("Nothing like this");
+        model.update(item2_2);
+        assertThat(model.getDisplayedRows()).containsExactly(item2_2);
+        verify(mockChangeListener).notifyDataSetChanged();
+
+        item2_2.setName("Still Nothing like this");
+        model.update(item2_2);
+        assertThat(model.getDisplayedRows()).containsExactly(item2_2);
+        verifyNoMoreInteractions(mockChangeListener);
+    }
 }

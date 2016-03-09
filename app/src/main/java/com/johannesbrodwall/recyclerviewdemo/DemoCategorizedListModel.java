@@ -183,6 +183,18 @@ public class DemoCategorizedListModel {
         redisplay();
     }
 
+    public void update(DemoItem item) {
+        int position = indexOf(item);
+        if (!matchesFilter(item)) {
+            if (position != -1) {
+                displayedRows.remove(position);
+                itemChangeListener.notifyItemRemoved(position);
+            }
+        } else if (position == -1) {
+            redisplay();
+        }
+    }
+
     public interface ItemChangeListener {
         void notifyItemChanged(int position);
 
@@ -193,6 +205,8 @@ public class DemoCategorizedListModel {
         void notifyItemRemoved(int position);
 
         void notifyDataSetChanged();
+
+        void notifyItemInserted(int position);
     }
 
     private static class NullItemChangeListener implements ItemChangeListener {
@@ -214,6 +228,11 @@ public class DemoCategorizedListModel {
 
         @Override
         public void notifyDataSetChanged() {
+        }
+
+        @Override
+        public void notifyItemInserted(int position) {
+
         }
     }
 }
