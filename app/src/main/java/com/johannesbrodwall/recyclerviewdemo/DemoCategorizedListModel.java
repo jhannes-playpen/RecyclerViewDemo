@@ -37,7 +37,11 @@ public class DemoCategorizedListModel {
     }
 
     public void toggleCategories() {
-        isGroupedByCategory = !isGroupedByCategory;
+        toggleCategories(!isGroupedByCategory);
+    }
+
+    public void toggleCategories(boolean isGroupedByCategory) {
+        this.isGroupedByCategory = isGroupedByCategory;
         redisplay();
     }
 
@@ -188,11 +192,28 @@ public class DemoCategorizedListModel {
         if (!matchesFilter(item)) {
             if (position != -1) {
                 displayedRows.remove(position);
-                itemChangeListener.notifyItemRemoved(position);
+
+                if (isGroupedByCategory && !categoryHasVisibleItems(item.getCategoryId())) {
+                    displayedRows.remove(position - 1);
+                    itemChangeListener.notifyItemRangeRemoved(position - 1, 2);
+                } else {
+                    itemChangeListener.notifyItemRemoved(position);
+                }
             }
         } else if (position == -1) {
             redisplay();
+        } else {
+            itemChangeListener.notifyItemChanged(position);
         }
+    }
+
+    private boolean categoryHasVisibleItems(UUID categoryId) {
+        for (DemoItem otherItem : this.itemsPerCategory.get(categoryId)) {
+            if (matchesFilter(otherItem)) {
+                return true;
+            }
+        }
+        return false;
     }
 
     public interface ItemChangeListener {

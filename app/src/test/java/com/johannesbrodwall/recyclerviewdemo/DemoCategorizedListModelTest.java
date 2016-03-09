@@ -193,18 +193,18 @@ public class DemoCategorizedListModelTest {
         DemoCategorizedListModel model = new DemoCategorizedListModel(
                 Arrays.asList(category1, category2),
                 Arrays.asList(item1_1, item2_1, item2_2));
-        model.toggleCategories();
+        model.toggleCategories(false);
 
-        model.setFilter("Item 2");
+        model.setFilter("Item 1");
 
         model.setItemChangeListener(mockChangeListener);
-        item2_2.setName("no match");
-        model.update(item2_2);
-        assertThat(model.getDisplayedRows()).containsExactly(item2_1);
-        verify(mockChangeListener).notifyItemRemoved(1);
+        item1_1.setName("no match");
+        model.update(item1_1);
+        assertThat(model.getDisplayedRows()).isEmpty();
+        verify(mockChangeListener).notifyItemRemoved(0);
 
-        item2_2.setName("still no match");
-        model.update(item2_2);
+        item1_1.setName("still no match");
+        model.update(item1_1);
         verifyNoMoreInteractions(mockChangeListener);
     }
 
@@ -226,6 +226,26 @@ public class DemoCategorizedListModelTest {
         item2_2.setName("Still Nothing like this");
         model.update(item2_2);
         assertThat(model.getDisplayedRows()).containsExactly(item2_2);
-        verifyNoMoreInteractions(mockChangeListener);
+        verify(mockChangeListener).notifyItemChanged(0);
+    }
+
+    @Test
+    public void shouldRemoveCategoryWhenAllItemsAreChangedToNotMatchFilter() {
+        DemoCategorizedListModel model = new DemoCategorizedListModel(
+                Arrays.asList(category1, category2),
+                Arrays.asList(item1_1, item2_1, item2_2));
+        model.toggleCategories(true);
+        model.setFilter("Item");
+
+        model.setItemChangeListener(mockChangeListener);
+        item1_1.setName("Not matching");
+        model.update(item1_1);
+        assertThat(model.getDisplayedRows()).containsExactly(category2, item2_1, item2_2);
+        verify(mockChangeListener).notifyItemRangeRemoved(0, 2);
+
+        item2_1.setName("Not matching");
+        model.update(item2_1);
+        assertThat(model.getDisplayedRows()).containsExactly(category2, item2_2);
+        verify(mockChangeListener).notifyItemRemoved(1);
     }
 }
