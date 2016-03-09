@@ -226,8 +226,6 @@ public class DemoCategorizedListModel {
         void notifyItemRemoved(int position);
 
         void notifyDataSetChanged();
-
-        void notifyItemInserted(int position);
     }
 
     private static class NullItemChangeListener implements ItemChangeListener {
@@ -249,11 +247,6 @@ public class DemoCategorizedListModel {
 
         @Override
         public void notifyDataSetChanged() {
-        }
-
-        @Override
-        public void notifyItemInserted(int position) {
-
         }
     }
 }
