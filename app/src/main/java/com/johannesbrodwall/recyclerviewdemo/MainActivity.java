@@ -78,7 +78,7 @@ public class MainActivity extends AppCompatActivity {
     private static List<DemoItem> getItems() {
         ArrayList<DemoItem> result = new ArrayList<>();
         for (int i=0; i<20; i++) {
-            result.add(new DemoItem("item " + i, pickRandom(CATEGORIES).getId()));
+            result.add(new DemoItem("item " + i, pickRandom(CATEGORIES)));
         }
         return result;
     }

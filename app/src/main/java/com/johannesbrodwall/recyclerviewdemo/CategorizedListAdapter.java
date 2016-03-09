@@ -59,7 +59,7 @@ public class CategorizedListAdapter extends RecyclerView.Adapter<CategorizedList
 
             @Override
             public int getSwipeDirs(RecyclerView recyclerView, RecyclerView.ViewHolder viewHolder) {
-                if (viewHolder instanceof CategorizedListAdapter.DemoCategoryViewHolder) {
+                if (viewHolder instanceof DemoCategoryViewHolder) {
                     return 0;
                 }
                 return super.getSwipeDirs(recyclerView, viewHolder);

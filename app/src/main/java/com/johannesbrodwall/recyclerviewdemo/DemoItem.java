@@ -6,9 +6,9 @@ public class DemoItem implements Comparable<DemoItem> {
     private final String name;
     private final UUID categoryId;
 
-    public DemoItem(String name, UUID categoryId) {
+    public DemoItem(String name, DemoCategory categoryId) {
         this.name = name;
-        this.categoryId = categoryId;
+        this.categoryId = categoryId.getId();
     }
 
     public UUID getCategoryId() {

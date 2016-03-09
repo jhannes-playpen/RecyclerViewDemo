@@ -19,6 +19,7 @@ public class DemoCategorizedListModel {
     private final Map<UUID, Boolean> isExpanded = new HashMap<>();
 
     private List<Object> displayedRows = new ArrayList<>();
+    private String filter;
 
     public DemoCategorizedListModel(List<DemoCategory> categories, List<DemoItem> items) {
         this.categories.addAll(categories);
@@ -35,25 +36,56 @@ public class DemoCategorizedListModel {
         displayWithCategories();
     }
 
+    public void toggleCategories() {
+        isGroupedByCategory = !isGroupedByCategory;
+        redisplay();
+    }
+
+    private void redisplay() {
+        if (isGroupedByCategory) {
+            displayWithCategories();
+        } else {
+            displayOnlyChildren();
+        }
+        itemChangeListener.notifyDataSetChanged();
+    }
+
     private void displayWithCategories() {
         displayedRows.clear();
         Collections.sort(categories);
 
         for (DemoCategory category : categories) {
-            displayedRows.add(category);
-            if (isExpanded.get(category.getId())) {
-                List<DemoItem> items = new ArrayList<>(itemsPerCategory.get(category.getId()));
-                Collections.sort(items);
-                displayedRows.addAll(items);
+            List<DemoItem> items = new ArrayList<>();
+            for (DemoItem item : itemsPerCategory.get(category.getId())) {
+                if (matchesFilter(item)) {
+                    items.add(item);
+                }
+            }
+            if (!items.isEmpty()) {
+                if (isExpanded.get(category.getId())) {
+                    Collections.sort(items);
+                    displayedRows.add(category);
+                    displayedRows.addAll(items);
+                } else {
+                    displayedRows.add(category);
+                }
             }
         }
+    }
+
+    private boolean matchesFilter(DemoItem item) {
+        return filter == null || item.getName().contains(filter);
     }
 
     private void displayOnlyChildren() {
         displayedRows.clear();
 
         Collections.sort(items);
-        displayedRows.addAll(items);
+        for (DemoItem item : items) {
+            if (matchesFilter(item)) {
+                displayedRows.add(item);
+            }
+        }
     }
 
     public int getRowCount() {
@@ -98,16 +130,6 @@ public class DemoCategorizedListModel {
         itemChangeListener.notifyItemRangeInserted(position + 1, children.size());
     }
 
-    public void toggleCategories() {
-        isGroupedByCategory = !isGroupedByCategory;
-        if (isGroupedByCategory) {
-            displayWithCategories();
-        } else {
-            displayOnlyChildren();
-        }
-        itemChangeListener.notifyDataSetChanged();
-    }
-
     public void remove(int position) {
         Object o = displayedRows.remove(position);
         if (o instanceof DemoCategory) {
@@ -116,7 +138,7 @@ public class DemoCategorizedListModel {
             List<DemoItem> itemsToRemove = itemsPerCategory.remove(category.getId());
 
             if (isExpanded.get(category.getId())) {
-                for (int i=0; i<itemsToRemove.size(); i++) {
+                for (int i = 0; i < itemsToRemove.size(); i++) {
                     displayedRows.remove(position);
                 }
                 itemChangeListener.notifyItemRangeRemoved(position, 1 + itemsToRemove.size());
@@ -124,14 +146,14 @@ public class DemoCategorizedListModel {
                 itemChangeListener.notifyItemRemoved(position);
             }
         } else if (o instanceof DemoItem) {
-            DemoItem item = (DemoItem)o;
+            DemoItem item = (DemoItem) o;
             itemsPerCategory.get(item.getCategoryId()).remove(item);
             items.remove(item);
             itemChangeListener.notifyItemRemoved(position);
 
             if (itemsPerCategory.get(item.getCategoryId()).isEmpty()) {
-                displayedRows.remove(position-1);
-                itemChangeListener.notifyItemRemoved(position-1);
+                displayedRows.remove(position - 1);
+                itemChangeListener.notifyItemRemoved(position - 1);
             }
         }
     }
@@ -154,6 +176,11 @@ public class DemoCategorizedListModel {
 
     public List<Object> getDisplayedRows() {
         return displayedRows;
+    }
+
+    public void setFilter(String filter) {
+        this.filter = filter;
+        redisplay();
     }
 
     public interface ItemChangeListener {
